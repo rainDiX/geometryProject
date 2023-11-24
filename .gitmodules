@@ -1,0 +1,6 @@
+[submodule "external/vtkImGuiAdapter/imgui/imgui"]
+	path = external/vtkImGuiAdapter/imgui/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "external/imgui"]
+	path = external/imgui
+	url = https://github.com/ocornut/imgui
