@@ -1,13 +1,20 @@
-add_subdirectory("vtkImGuiAdapter")
-
 add_executable(geo)
 
-target_link_libraries(geo vtkImGuiAdapter)
+target_link_libraries(geo PRIVATE vtkImGuiAdapter nfd)
 
 vtk_module_autoinit(
   TARGETS geo
   MODULES ${VTK_LIBRARIES}
   )
 
-target_sources(geo PRIVATE draw.cpp)
+target_sources(geo PRIVATE 
+  main.cpp
+  Tools.cpp
+  Application.cpp
+  fileIO.cpp
+)
 
+target_include_directories(geo
+    PRIVATE
+    ${geo_include_dir}
+)

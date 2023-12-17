@@ -29,7 +29,7 @@ ExternalProject_Add(
     VTK
     URL "https://www.vtk.org/files/release/9.3/VTK-9.3.0.tar.gz"
     INSTALL_DIR "${CMAKE_INSTALL_PREFIX}"
-    CMAKE_ARGS`
+    CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
       -DVTK_BUILD_TESTING:BOOL=OFF
       -DVTK_ENABLE_LOGGING:BOOL=OFF

@@ -7,8 +7,6 @@ project(geometry
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(GNUInstallDirs)
 
-add_subdirectory(external)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -23,13 +21,11 @@ endif()
 set(vtk_components
   CommonCore
   CommonDataModel
+  IOGeometry
   RenderingCore
   RenderingOpenGL2
   RenderingVolumeOpenGL2
   InteractionStyle
-  FiltersCore
-  FiltersModeling
-  FiltersSources
   )
 
 find_package(VTK 9.0 REQUIRED COMPONENTS
@@ -38,5 +34,9 @@ find_package(VTK 9.0 REQUIRED COMPONENTS
 
 message(STATUS "VTK_VERSION: ${VTK_VERSION}")
 message(STATUS "VTK_LIBRARIES: ${VTK_LIBRARIES}")
+
+add_subdirectory(external)
+
+set(geo_include_dir "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_subdirectory(src)
