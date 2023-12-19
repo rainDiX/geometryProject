@@ -1,12 +1,15 @@
 #include "Tools.hpp"
 
+#include <imgui.h>
 #include <vtkActor.h>
+#include <vtkDataSet.h>
+#include <vtkPointData.h>
+#include <vtkPolyData.h>
 #include <vtkProperty.h>
 
-#include "imgui.h"
+#include <format>
 
-void actorListWindow(vtkRenderer* renderer, bool& open) {
-    static int selected = 0;
+void actorListWindow(vtkRenderer* renderer, bool& open, int& selected) {
     ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("vtk Actors", &open)) {
         {
@@ -16,9 +19,9 @@ void actorListWindow(vtkRenderer* renderer, bool& open) {
 
             for (int i = 0; i < num_items; ++i) {
                 auto actor = dynamic_cast<vtkActor*>(actors->GetItemAsObject(i));
-                if (ImGui::Selectable(actor->GetClassName(), selected == i)) {
+                const std::string label = std::format("{}: {}", i, actor->GetObjectName());
+                if (ImGui::Selectable(label.c_str(), selected == i)) {
                     selected = i;
-                    std::cerr << i << '\n';
                 }
             }
             ImGui::EndChild();
@@ -32,10 +35,11 @@ void actorListWindow(vtkRenderer* renderer, bool& open) {
             auto actors = renderer->GetActors();
             auto actor = dynamic_cast<vtkActor*>(actors->GetItemAsObject(selected));
             if (actor) {
-                ImGui::Text("Actor: %d", selected);
+                ImGui::Text("Actor %d: %s", selected, actor->GetObjectName().c_str());
                 ImGui::Separator();
+                ImGui::Text("Type: %s", actor->GetClassName());
                 bool edgeVisibility = actor->GetProperty()->GetEdgeVisibility();
-                if(ImGui::Checkbox("Edge Visibility", &edgeVisibility)) {
+                if (ImGui::Checkbox("Edge Visibility", &edgeVisibility)) {
                     actor->GetProperty()->SetEdgeVisibility(edgeVisibility);
                 }
             }
@@ -45,4 +49,34 @@ void actorListWindow(vtkRenderer* renderer, bool& open) {
     }
 }
 
-void actorManagerWindow(vtkRenderer* renderer, vtkActor* actor, bool& open) {}
+void functionsWindow(vtkRenderer* renderer, MouseInteractorStylePP* picker, bool& open, bool& picking) {
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Function XXX", &open)) {
+        if (!picking) {
+            if (ImGui::Button("Pick")) {
+                picker->resetPickedState();
+                picking = true;
+            }
+        } else {
+            ImGui::Text("Picking");
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
+                picking = false;
+            }
+        }
+        if (picker->pickedSomething()) {
+            picking = false;
+            auto actor = picker->getPickedActor();
+            auto data = picker->getPickedData();
+            auto pointId = picker->getPickedPointId();
+
+            if (pointId && data) {
+                double* point = (*data)->GetPoint(*pointId);
+                ImGui::Text("Picked Point : %lf %lf %lf", point[0], point[1], point[2]);
+            }
+            if (actor) {
+                ImGui::Text("Actor : %s", (*actor)->GetObjectName().c_str());
+            }
+        }
+    }
+}

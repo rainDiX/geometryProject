@@ -22,6 +22,7 @@ set(vtk_components
   CommonCore
   CommonDataModel
   IOGeometry
+  IOPLY
   RenderingCore
   RenderingOpenGL2
   RenderingVolumeOpenGL2

@@ -3,8 +3,11 @@
 #include <nfd.h>
 #include <vtkImGuiSDL2OpenGLRenderWindow.h>
 #include <vtkImGuiSDL2RenderWindowInteractor.h>
+#include <vtkInteractorStyleSwitch.h>
 #include <vtkNew.h>
 #include <vtkRenderer.h>
+
+#include "MouseInteractorStylePP.hpp"
 
 class Application {
    public:
@@ -19,12 +22,16 @@ class Application {
 
    private:
     void mainWindow();
-    bool running = false;
-    bool showActorWindow = false;
-    vtkNew<vtkRenderer> renderer;
-    vtkNew<vtkImGuiSDL2OpenGLRenderWindow> renWin;
-    vtkNew<vtkImGuiSDL2RenderWindowInteractor> iren;
-    SDL_Window* window = nullptr;
-    SDL_GLContext imgui_context = nullptr;
-    nfdresult_t nfd_initialized;
+    bool m_running = false;
+    bool m_showActorWindow = false;
+    bool m_showFunctionsWindow = false;
+    bool m_picking = false;
+    vtkNew<vtkRenderer> m_renderer;
+    vtkNew<vtkImGuiSDL2OpenGLRenderWindow> m_renWin;
+    vtkNew<vtkImGuiSDL2RenderWindowInteractor> m_iren;
+    vtkNew<vtkInteractorStyleSwitch> m_defaultStyle;
+    vtkNew<MouseInteractorStylePP> m_pickingStyle;
+    SDL_Window* m_window = nullptr;
+    SDL_GLContext m_imguiContext = nullptr;
+    nfdresult_t m_nfdInitialized;
 };

@@ -1,5 +1,9 @@
 #include "fileIO.hpp"
 
+#include <vtkOBJReader.h>
+#include <vtkPLYReader.h>
+#include <vtkPolyDataMapper.h>
+
 #include <format>
 #include <iostream>
 
@@ -10,7 +14,7 @@
 
 std::optional<std::filesystem::path> pickModelFile() {
     nfdchar_t *outPath;
-    nfdfilteritem_t filterItem[2] = {{"Wavefront OBJ", "obj"}, {"glTF", "gltf"}};
+    nfdfilteritem_t filterItem[2] = {{"Wavefront OBJ (.obj)", "obj"}, {"Polygon File Format (.ply)", "gltf"}};
     nfdresult_t result = NFD_OpenDialog(&outPath, filterItem, 2, NULL);
 
     if (result != NFD_OKAY && result != NFD_CANCEL) {
@@ -30,8 +34,9 @@ std::optional<std::filesystem::path> pickModelFile() {
     return std::nullopt;
 }
 
-vtkNew<vtkActor> openObjectFile(const std::filesystem::path &path) {
-    vtkNew<vtkOBJReader> reader;
+template <typename Reader>
+vtkNew<vtkActor> openFile(const std::filesystem::path &path) {
+    vtkNew<Reader> reader;
     reader->SetFileName(path.c_str());
     reader->Update();
 
@@ -41,5 +46,11 @@ vtkNew<vtkActor> openObjectFile(const std::filesystem::path &path) {
     vtkNew<vtkActor> meshActor;
     meshActor->SetMapper(meshMapper);
 
+    meshActor->SetObjectName(path.filename());
+
     return meshActor;
 }
+
+vtkNew<vtkActor> openObjectFile(const std::filesystem::path &path) { return openFile<vtkOBJReader>(path); };
+
+vtkNew<vtkActor> openPLYFile(const std::filesystem::path &path) { return openFile<vtkPLYReader>(path); };

@@ -2,9 +2,9 @@
 
 #include <vtkRenderer.h>
 #include <vtkNew.h>
-#include <vtkImGuiSDL2RenderWindowInteractor.h>
 
+#include "MouseInteractorStylePP.hpp"
 
-void actorListWindow(vtkRenderer* renderer, bool& open);
+void actorListWindow(vtkRenderer* renderer, bool& open, int& seleted);
 
-void actorManagerWindow(vtkRenderer* renderer, vtkActor* actor, bool& open);
+void functionsWindow(vtkRenderer* renderer, MouseInteractorStylePP* picker, bool& open, bool& picking);

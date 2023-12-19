@@ -1,10 +1,11 @@
 #include "Application.hpp"
 
+#include <SDL_mouse.h>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <vtkCamera.h>
-#include <vtkInteractorStyleSwitch.h>
+#include <vtkPointPicker.h>
 
 #include <format>
 #include <iostream>
@@ -14,82 +15,100 @@
 #include "fileIO.hpp"
 
 Application::Application() {
-    renWin->AddRenderer(renderer);
-    iren->SetRenderWindow(renWin);
-    renderer->SetBackground(0.2, 0.2, 0.2);
-    vtkNew<vtkInteractorStyleSwitch> style;
-    style->SetCurrentStyleToTrackballCamera();
-    style->SetDefaultRenderer(renderer);
-    iren->SetInteractorStyle(style);
-    renWin->SetSize(800, 800);
-    iren->Initialize();
+    m_renWin->AddRenderer(m_renderer);
+    m_iren->SetRenderWindow(m_renWin);
+    m_renderer->SetBackground(0.2, 0.2, 0.2);
+    m_pickingStyle->SetDefaultRenderer(m_renderer);
+    m_defaultStyle->SetCurrentStyleToTrackballCamera();
+    m_defaultStyle->SetDefaultRenderer(m_renderer);
+    m_iren->SetInteractorStyle(m_defaultStyle);
+    vtkNew<vtkPointPicker> pointPicker;
+    m_iren->SetPicker(pointPicker);
+    m_renWin->SetSize(800, 800);
+    m_iren->Initialize();
 
     // GUI Setup
-    window = static_cast<SDL_Window *>(renWin->GetGenericWindowId());
+    m_window = static_cast<SDL_Window *>(m_renWin->GetGenericWindowId());
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGuiIO &io = ImGui::GetIO();
-    iren->SetImguiIO(&io);
-    imgui_context = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, imgui_context);
+    m_iren->SetImguiIO(&io);
+    m_imguiContext = SDL_GL_CreateContext(m_window);
+    SDL_GL_MakeCurrent(m_window, m_imguiContext);
     SDL_GL_SetSwapInterval(1);  // Enable vsync
-    ImGui_ImplSDL2_InitForOpenGL(window, imgui_context);
+    ImGui_ImplSDL2_InitForOpenGL(m_window, m_imguiContext);
     ImGui_ImplOpenGL3_Init();
 
     // file picker
-    nfd_initialized = NFD_Init();
-    if (nfd_initialized != NFD_OKAY) {
+    m_nfdInitialized = NFD_Init();
+    if (m_nfdInitialized != NFD_OKAY) {
         std::cerr << "NFD failed to initialize, filepicker wont' work\n";
         std::cerr << std::format("Error: {}\n", NFD_GetError());
     }
 }
 
 Application::~Application() {
-    if (nfd_initialized == NFD_OKAY) {
+    if (m_nfdInitialized == NFD_OKAY) {
         NFD_Quit();
     }
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    SDL_GL_DeleteContext(imgui_context);
-    SDL_DestroyWindow(window);
+    SDL_GL_DeleteContext(m_imguiContext);
+    SDL_DestroyWindow(m_window);
     SDL_Quit();
 }
 
 void Application::mainLoop() {
-    running = true;
-    while (running) {
-        renWin->Render();
+    m_running = true;
+    int selected_actor = 0;
+    bool pickingState = false;
+    while (m_running) {
+        m_renWin->Render();
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) running = false;
+            if (event.type == SDL_QUIT) m_running = false;
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
-                event.window.windowID == SDL_GetWindowID(window))
-                running = false;
-            renWin->PushContext();
-            running = !iren->ProcessEvent(&event);
-            renWin->PopContext();
+                event.window.windowID == SDL_GetWindowID(m_window))
+                m_running = false;
+            m_renWin->PushContext();
+            m_running = !m_iren->ProcessEvent(&event);
+            m_renWin->PopContext();
         }
 
-        SDL_GL_MakeCurrent(window, imgui_context);
+        if (m_picking != pickingState) {
+            if (m_picking) {
+                m_iren->SetInteractorStyle(m_pickingStyle);
+                SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_CROSSHAIR));
+            } else {
+                SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW));
+                // reset the state of the picker before switching
+                m_pickingStyle->OnLeftButtonUp();
+                m_iren->SetInteractorStyle(m_defaultStyle);
+            }
+            pickingState = m_picking;
+        }
+
+        SDL_GL_MakeCurrent(m_window, m_imguiContext);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         mainWindow();
-        if (showActorWindow) actorListWindow(renderer, showActorWindow);
+        if (m_showActorWindow) actorListWindow(m_renderer, m_showActorWindow, selected_actor);
+        if (m_showFunctionsWindow) functionsWindow(m_renderer, m_pickingStyle, m_showFunctionsWindow, m_picking);
+
         ImGui::Render();
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(m_window);
     }  // render loop
 }
 
 void Application::mainWindow() {
     {
         static float f = 0.0f;
-        static int counter = 0;
 
         ImGui::Begin("Geometry Project", nullptr, ImGuiWindowFlags_MenuBar);
 
@@ -100,7 +119,10 @@ void Application::mainWindow() {
                     if (path.has_value() && path->has_extension()) {
                         if (path->extension() == ".obj") {
                             auto actor = openObjectFile(*path);
-                            renderer->AddActor(actor);
+                            m_renderer->AddActor(actor);
+                        } else if (path->extension() == ".ply") {
+                            auto actor = openPLYFile(*path);
+                            m_renderer->AddActor(actor);
                         } else {
                             std::cout << "unknown file type" << std::endl;
                         }
@@ -111,51 +133,56 @@ void Application::mainWindow() {
                 if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
                 }
                 if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-                    running = false;
+                    m_running = false;
                 }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Tools")) {
                 if (ImGui::MenuItem("Actors")) {
-                    showActorWindow = true;
+                    m_showActorWindow = true;
+                }
+                if (ImGui::MenuItem("Functions")) {
+                    m_showFunctionsWindow = true;
                 }
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
         }
 
-        if (ImGui::CollapsingHeader("View")) {
-            double *color = renderer->GetBackground();
+        if (ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) {
+            double *color = m_renderer->GetBackground();
             float colorf[] = {float(color[0]), float(color[1]), float(color[2]), 1.0f};
             if (ImGui::ColorEdit3("Background", colorf)) {
-                renderer->SetBackground(colorf[0], colorf[1], colorf[2]);
+                m_renderer->SetBackground(colorf[0], colorf[1], colorf[2]);
             }
 
-            auto style = dynamic_cast<vtkInteractorStyleSwitch *>(iren->GetInteractorStyle());
-            std::map<std::string, int> style_map = {{"vtkInteractorStyleTrackballCamera", 0},
-                                                    {"vtkInteractorStyleJoystickCamera", 1},
-                                                    {"vtkInteractorStyleMultiTouchCamera", 2}};
-            const char *styles[] = {"Trackball", "Joystick", "Multitouch"};
-            auto current_class = style_map[style->GetCurrentStyle()->GetClassName()];
-            if (ImGui::Combo("Camera Style", &current_class, styles, IM_ARRAYSIZE(styles))) {
-                switch (current_class) {
-                    case 0:
-                        style->SetCurrentStyleToTrackballCamera();
-                        break;
-                    case 1:
-                        style->SetCurrentStyleToJoystickCamera();
-                        break;
-                    case 2:
-                        style->SetCurrentStyleToMultiTouchCamera();
-                        break;
-                    default:
-                        style->SetCurrentStyleToTrackballCamera();
+            if (!m_picking) {
+                auto style = dynamic_cast<vtkInteractorStyleSwitch *>(m_iren->GetInteractorStyle());
+                std::map<std::string, int> style_map = {{"vtkInteractorStyleTrackballCamera", 0},
+                                                        {"vtkInteractorStyleJoystickCamera", 1},
+                                                        {"vtkInteractorStyleMultiTouchCamera", 2}};
+                const char *styles[] = {"Trackball", "Joystick", "Multitouch"};
+                auto current_class = style_map[style->GetCurrentStyle()->GetClassName()];
+
+                if (ImGui::Combo("Camera Style", &current_class, styles, IM_ARRAYSIZE(styles))) {
+                    switch (current_class) {
+                        case 0:
+                            style->SetCurrentStyleToTrackballCamera();
+                            break;
+                        case 1:
+                            style->SetCurrentStyleToJoystickCamera();
+                            break;
+                        case 2:
+                            style->SetCurrentStyleToMultiTouchCamera();
+                            break;
+                        default:
+                            style->SetCurrentStyleToTrackballCamera();
+                    }
                 }
+                ImGui::SameLine();
+                ImGui::Text("Camera Parameters");
             }
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-            ImGui::Text("Camera Parameters");
-            auto camera = renderer->GetActiveCamera();
+            auto camera = m_renderer->GetActiveCamera();
             float fov = float(camera->GetViewAngle());
             if (ImGui::SliderFloat("Field of view", &fov, 0.0f, 360.0f)) {
                 camera->SetViewAngle(fov);
@@ -178,6 +205,8 @@ void Application::mainWindow() {
             }
         }
 
+        //spacer
+        ImGui::Dummy(ImVec2(0, 20));
         auto size = ImGui::GetIO().DisplaySize;
         ImGui::Text("%.3f ms/frame (%.1f FPS) %.1f x %.1f", 1000.0f / ImGui::GetIO().Framerate,
                     ImGui::GetIO().Framerate, size.x, size.y);

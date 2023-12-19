@@ -12,6 +12,7 @@ target_sources(geo PRIVATE
   Tools.cpp
   Application.cpp
   fileIO.cpp
+  MouseInteractorStylePP.cpp
 )
 
 target_include_directories(geo
