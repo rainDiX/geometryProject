@@ -35,7 +35,7 @@ std::optional<std::filesystem::path> pickModelFile() {
 }
 
 template <typename Reader>
-vtkNew<vtkActor> openFile(const std::filesystem::path &path) {
+void openFile(const std::filesystem::path &path, vtkRenderer *renderer) {
     vtkNew<Reader> reader;
     reader->SetFileName(path.c_str());
     reader->Update();
@@ -48,9 +48,13 @@ vtkNew<vtkActor> openFile(const std::filesystem::path &path) {
 
     meshActor->SetObjectName(path.filename());
 
-    return meshActor;
+    renderer->AddActor(meshActor);
 }
 
-vtkNew<vtkActor> openObjectFile(const std::filesystem::path &path) { return openFile<vtkOBJReader>(path); };
+void openObjectFile(const std::filesystem::path &path, vtkRenderer *renderer) {
+    return openFile<vtkOBJReader>(path, renderer);
+};
 
-vtkNew<vtkActor> openPLYFile(const std::filesystem::path &path) { return openFile<vtkPLYReader>(path); };
+void openPLYFile(const std::filesystem::path &path, vtkRenderer *renderer) {
+    return openFile<vtkPLYReader>(path, renderer);
+};

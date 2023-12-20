@@ -9,10 +9,11 @@ vtk_module_autoinit(
 
 target_sources(geo PRIVATE 
   main.cpp
-  Tools.cpp
   Application.cpp
   fileIO.cpp
+  harmonicFn.cpp
   MouseInteractorStylePP.cpp
+  Tools.cpp
 )
 
 target_include_directories(geo

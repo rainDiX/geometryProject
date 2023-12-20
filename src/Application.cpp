@@ -10,8 +10,8 @@
 #include <format>
 #include <iostream>
 #include <map>
+#include <memory>
 
-#include "Tools.hpp"
 #include "fileIO.hpp"
 
 Application::Application() {
@@ -46,6 +46,8 @@ Application::Application() {
         std::cerr << "NFD failed to initialize, filepicker wont' work\n";
         std::cerr << std::format("Error: {}\n", NFD_GetError());
     }
+
+    m_tools = std::make_unique<Tools>(m_renderer, m_pickingStyle, &m_picking);
 }
 
 Application::~Application() {
@@ -96,13 +98,14 @@ void Application::mainLoop() {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         mainWindow();
-        if (m_showActorWindow) actorListWindow(m_renderer, m_showActorWindow, selected_actor);
-        if (m_showFunctionsWindow) functionsWindow(m_renderer, m_pickingStyle, m_showFunctionsWindow, m_picking);
+        m_tools->showWindows();
 
         ImGui::Render();
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(m_window);
+
+        m_tools->cleanup();
     }  // render loop
 }
 
@@ -118,11 +121,9 @@ void Application::mainWindow() {
                     auto path = pickModelFile();
                     if (path.has_value() && path->has_extension()) {
                         if (path->extension() == ".obj") {
-                            auto actor = openObjectFile(*path);
-                            m_renderer->AddActor(actor);
+                            openObjectFile(*path, m_renderer);
                         } else if (path->extension() == ".ply") {
-                            auto actor = openPLYFile(*path);
-                            m_renderer->AddActor(actor);
+                            openPLYFile(*path, m_renderer);
                         } else {
                             std::cout << "unknown file type" << std::endl;
                         }
@@ -139,10 +140,10 @@ void Application::mainWindow() {
             }
             if (ImGui::BeginMenu("Tools")) {
                 if (ImGui::MenuItem("Actors")) {
-                    m_showActorWindow = true;
+                    m_tools->enableActorListWindow();
                 }
                 if (ImGui::MenuItem("Functions")) {
-                    m_showFunctionsWindow = true;
+                    m_tools->enableFunctionWindow();
                 }
                 ImGui::EndMenu();
             }
@@ -179,7 +180,6 @@ void Application::mainWindow() {
                             style->SetCurrentStyleToTrackballCamera();
                     }
                 }
-                ImGui::SameLine();
                 ImGui::Text("Camera Parameters");
             }
             auto camera = m_renderer->GetActiveCamera();

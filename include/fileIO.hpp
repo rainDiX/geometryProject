@@ -2,12 +2,13 @@
 
 #include <nfd.h>
 #include <vtkActor.h>
+#include <vtkRenderer.h>
 
 #include <filesystem>
 #include <optional>
 
 std::optional<std::filesystem::path> pickModelFile();
 
-vtkNew<vtkActor> openObjectFile(const std::filesystem::path &path);
+void openObjectFile(const std::filesystem::path& path, vtkRenderer* renderer);
 
-vtkNew<vtkActor> openPLYFile(const std::filesystem::path &path);
+void openPLYFile(const std::filesystem::path& path, vtkRenderer* renderer);
