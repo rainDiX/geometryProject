@@ -69,3 +69,11 @@ ExternalProject_Add(
 )
 
 add_dependencies(VTK SDL2)
+
+ExternalProject_Add(
+    EigenExternalProject
+    URL "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz"
+    INSTALL_DIR "${CMAKE_INSTALL_PREFIX}"
+    CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+)

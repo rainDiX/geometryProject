@@ -36,6 +36,9 @@ find_package(VTK 9.0 REQUIRED COMPONENTS
 message(STATUS "VTK_VERSION: ${VTK_VERSION}")
 message(STATUS "VTK_LIBRARIES: ${VTK_LIBRARIES}")
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 add_subdirectory(external)
 
 set(geo_include_dir "${CMAKE_CURRENT_SOURCE_DIR}/include")

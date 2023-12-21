@@ -1,6 +1,6 @@
 add_executable(geo)
 
-target_link_libraries(geo PRIVATE vtkImGuiAdapter nfd)
+target_link_libraries(geo PRIVATE vtkImGuiAdapter nfd Eigen3::Eigen)
 
 vtk_module_autoinit(
   TARGETS geo

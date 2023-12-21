@@ -29,8 +29,9 @@ class Tools {
     int m_weightingMethod = 0;
     float m_alpha = 1.0 / 4.0;
     int m_ringCount = 1;
-    float colorStart[3] = {1.0, 0.0, 0.0};
-    float colorEnd[3] = {0.0, 0.0, 1.0};
+    float m_colorStart[3] = {1.0, 0.0, 0.0};
+    float m_colorEnd[3] = {0.0, 0.0, 1.0};
+    float m_colorNeutral[3] = {1.0, 1.0, 1.0};
     vtkActor* m_toRemove = nullptr;
     vtkRenderer* m_renderer;
     MouseInteractorStylePP* m_picker;

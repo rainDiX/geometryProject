@@ -104,7 +104,7 @@ void colorizeMesh(vtkPolyData* polyData, float* color) {
 
 void Tools::functionsWindow() {
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Transformations", &m_showFnWindow)) {
+    if (ImGui::Begin("Harmonic functions visualization", &m_showFnWindow)) {
         if (!(*m_picking)) {
             if (ImGui::Button("Pick")) {
                 m_picker->resetPickedState();
@@ -133,7 +133,7 @@ void Tools::functionsWindow() {
 
             ImGui::Separator();
             ImGui::Text("Weight Function");
-            std::array<const char*, 2> styles = {"Simple Harmonic", "Iterative Harmonic"};
+            std::array<const char*, 2> styles = {"Simple Harmonic", "Laplacian Diffusion"};
 
             ImGui::Combo("Weighting Method", &m_weightingMethod, styles.begin(), styles.size());
 
@@ -151,35 +151,32 @@ void Tools::functionsWindow() {
             ImGui::Separator();
             ImGui::Text("Color Transformation");
 
-            ImGui::ColorEdit3("Initial Color", colorStart);
-            ImGui::ColorEdit3("End Color", colorEnd);
+            ImGui::ColorEdit3("Default Color", m_colorNeutral);
+            ImGui::ColorEdit3("Initial Color", m_colorStart);
+            ImGui::ColorEdit3("End Color", m_colorEnd);
 
             if (actor && data && pointId) {
                 auto polyData = *data;
                 auto originActor = *actor;
                 if (ImGui::Button("Apply")) {
-                    colorizeMesh(polyData, colorEnd);
+                    colorizeMesh(polyData, m_colorNeutral);
+                    std::function<double(vtkIdType)> harmonic = [](vtkIdType) -> double { return 0.0; };
                     if (m_weightingMethod == 0) {
-                        auto harmonic = simpleHarmonic(polyData, *pointId, m_ringCount);
-                        for (vtkIdType ptid = 0; ptid < polyData->GetNumberOfPoints(); ++ptid) {
-                            auto weight = harmonic(ptid);
-                            double r = 255.0 * (weight * colorStart[0] + (1.0 - weight) * colorEnd[0]);
-                            double g = 255.0 * (weight * colorStart[1] + (1.0 - weight) * colorEnd[1]);
-                            double b = 255.0 * (weight * colorStart[2] + (1.0 - weight) * colorEnd[2]);
-                            polyData->GetPointData()->GetScalars()->SetTuple3(ptid, r, g, b);
-                        }
-                    } else if (m_weightingMethod == 1) {
-                        auto harmonic = iterativeHarmonic(polyData, *pointId, m_alpha ,m_ringCount);
-                        for (vtkIdType ptid = 0; ptid < polyData->GetNumberOfPoints(); ++ptid) {
-                            auto weight = harmonic(ptid);
-                            if (weight > 0) std::cerr << ptid << ' ' << weight << '\n';
-                            double r = 255.0 * (weight * colorStart[0] + (1.0 - weight) * colorEnd[0]);
-                            double g = 255.0 * (weight * colorStart[1] + (1.0 - weight) * colorEnd[1]);
-                            double b = 255.0 * (weight * colorStart[2] + (1.0 - weight) * colorEnd[2]);
-                            polyData->GetPointData()->GetScalars()->SetTuple3(ptid, r, g, b);
-                        }
+                        harmonic = simpleHarmonic(polyData, *pointId, m_ringCount);
                     } else {
-                        std::cerr << "Not implemented\n";
+                        harmonic = laplacianDiffusion(polyData, *pointId, m_alpha, m_ringCount);
+                    }
+
+                    double max = harmonic(*pointId);
+                    for (vtkIdType ptid = 0; ptid < polyData->GetNumberOfPoints(); ++ptid) {
+                        double weight = harmonic(ptid);
+                        double normalized = weight / max;
+                        if (weight > 0.0) {
+                            double r = 255.0 * (normalized * m_colorStart[0] + (1.0 - normalized) * m_colorEnd[0]);
+                            double g = 255.0 * (normalized * m_colorStart[1] + (1.0 - normalized) * m_colorEnd[1]);
+                            double b = 255.0 * (normalized * m_colorStart[2] + (1.0 - normalized) * m_colorEnd[2]);
+                            polyData->GetPointData()->GetScalars()->SetTuple3(ptid, r, g, b);
+                        }
                     }
                 }
             }

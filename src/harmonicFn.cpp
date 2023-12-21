@@ -47,17 +47,6 @@ std::unordered_map<vtkIdType, long> buildRingMap(vtkPolyData* mesh, vtkIdType in
     return ringMap;
 }
 
-std::function<double(vtkIdType)> simpleHarmonic(vtkPolyData* mesh, vtkIdType pointId, long ringCount) {
-    auto ringMap = buildRingMap(mesh, pointId, ringCount);
-    return [=](vtkIdType ptId) {
-        if (auto search = ringMap.find(ptId); search != ringMap.end()) {
-            return static_cast<double>(ringCount - search->second) / static_cast<double>(ringCount);
-        } else {
-            return 0.0;
-        }
-    };
-}
-
 std::unordered_map<vtkIdType, std::unordered_set<vtkIdType>> buildNeighborMap(vtkPolyData* mesh) {
     std::unordered_map<vtkIdType, std::unordered_set<vtkIdType>> neighborMap;
     vtkCellArray* polys = mesh->GetPolys();
@@ -82,10 +71,22 @@ std::unordered_map<vtkIdType, std::unordered_set<vtkIdType>> buildNeighborMap(vt
     return neighborMap;
 }
 
-std::function<double(vtkIdType)> iterativeHarmonic(vtkPolyData* mesh, vtkIdType ptId, double alpha, int iterations) {
+
+std::function<double(vtkIdType)> simpleHarmonic(vtkPolyData* mesh, vtkIdType pointId, long ringCount) {
+    auto ringMap = buildRingMap(mesh, pointId, ringCount);
+    return [=](vtkIdType ptId) {
+        if (auto search = ringMap.find(ptId); search != ringMap.end()) {
+            return static_cast<double>(ringCount - search->second) / static_cast<double>(ringCount);
+        } else {
+            return 0.0;
+        }
+    };
+}
+
+std::function<double(vtkIdType)> laplacianDiffusion(vtkPolyData* mesh, vtkIdType ptId, double alpha, int iterations) {
     auto neighborMap = buildNeighborMap(mesh);
-    std::unordered_map<vtkIdType, double> f;
-    std::unordered_map<vtkIdType, double> fi;
+    std::unordered_map<vtkIdType, double> f; // currentValue
+    std::unordered_map<vtkIdType, double> g; // newValue
     f[ptId] = 1.0;
     for (int i = 0; i < iterations; ++i) {
         for (vtkIdType ptId = 0; ptId < mesh->GetNumberOfPoints(); ++ptId) {
@@ -101,11 +102,10 @@ std::function<double(vtkIdType)> iterativeHarmonic(vtkPolyData* mesh, vtkIdType 
                 }
             }
             if (weight > 0.0 || weightOfNeighbors > 0.0) {
-                std::cerr << ptId << '\n';
-                fi[ptId] = alpha * (1.0 / neighbors.size()) * weightOfNeighbors + (1.0 - alpha) * weight;
+                g[ptId] = (1.0 - alpha) * weight + alpha * (1.0 / neighbors.size()) * weightOfNeighbors;
             }
         }
-        f = fi;
+        f = g;
     }
     return [=](vtkIdType ptId) {
         if (auto search = f.find(ptId); search != f.end()) {

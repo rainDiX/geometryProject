@@ -142,7 +142,7 @@ void Application::mainWindow() {
                 if (ImGui::MenuItem("Actors")) {
                     m_tools->enableActorListWindow();
                 }
-                if (ImGui::MenuItem("Functions")) {
+                if (ImGui::MenuItem("Visualization")) {
                     m_tools->enableFunctionWindow();
                 }
                 ImGui::EndMenu();
