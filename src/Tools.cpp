@@ -133,15 +133,19 @@ void Tools::functionsWindow() {
 
             ImGui::Separator();
             ImGui::Text("Weight Function");
-            std::map<std::string, int> function_map = {{"Simple Harmonic", 0}};
-            const char* styles[] = {"None", "Simple Harmonic"};
+            std::array<const char*, 2> styles = {"Simple Harmonic", "Iterative Harmonic"};
 
-            ImGui::Combo("Weighting Method", &m_weightingMethod, styles, IM_ARRAYSIZE(styles));
+            ImGui::Combo("Weighting Method", &m_weightingMethod, styles.begin(), styles.size());
 
-            if (m_weightingMethod > 0) {
-                if (ImGui::InputInt("Ring Count", &m_ringCount)) {
-                    if (m_ringCount < 1) m_ringCount = 1;
-                };
+            if (m_weightingMethod == 0) {
+                if (m_ringCount < 1) m_ringCount = 1;
+                ImGui::InputInt("Ring Count", &m_ringCount);
+            } else if (m_weightingMethod == 1) {
+                if (m_ringCount < 0) m_ringCount = 0;
+                ImGui::InputInt("Iterations", &m_ringCount);
+                if (m_alpha < 0.0) m_alpha = 0.0;
+                if (m_alpha >= 0.5) m_alpha = 0.49;
+                ImGui::InputFloat("Alpha", &m_alpha);
             }
 
             ImGui::Separator();
@@ -156,12 +160,19 @@ void Tools::functionsWindow() {
                 if (ImGui::Button("Apply")) {
                     colorizeMesh(polyData, colorEnd);
                     if (m_weightingMethod == 0) {
-                        polyData->GetPointData()->GetScalars()->SetTuple3(*pointId, colorStart[0] * 255.0,
-                                                                          colorStart[1] * 255.0, colorStart[2] * 255.0);
-                    } else if (m_weightingMethod == 1) {
                         auto harmonic = simpleHarmonic(polyData, *pointId, m_ringCount);
                         for (vtkIdType ptid = 0; ptid < polyData->GetNumberOfPoints(); ++ptid) {
                             auto weight = harmonic(ptid);
+                            double r = 255.0 * (weight * colorStart[0] + (1.0 - weight) * colorEnd[0]);
+                            double g = 255.0 * (weight * colorStart[1] + (1.0 - weight) * colorEnd[1]);
+                            double b = 255.0 * (weight * colorStart[2] + (1.0 - weight) * colorEnd[2]);
+                            polyData->GetPointData()->GetScalars()->SetTuple3(ptid, r, g, b);
+                        }
+                    } else if (m_weightingMethod == 1) {
+                        auto harmonic = iterativeHarmonic(polyData, *pointId, m_alpha ,m_ringCount);
+                        for (vtkIdType ptid = 0; ptid < polyData->GetNumberOfPoints(); ++ptid) {
+                            auto weight = harmonic(ptid);
+                            if (weight > 0) std::cerr << ptid << ' ' << weight << '\n';
                             double r = 255.0 * (weight * colorStart[0] + (1.0 - weight) * colorEnd[0]);
                             double g = 255.0 * (weight * colorStart[1] + (1.0 - weight) * colorEnd[1]);
                             double b = 255.0 * (weight * colorStart[2] + (1.0 - weight) * colorEnd[2]);

@@ -27,10 +27,11 @@ class Tools {
     bool m_showActorsWindow = false;
     bool* m_picking;
     int m_weightingMethod = 0;
+    float m_alpha = 1.0 / 4.0;
     int m_ringCount = 1;
     float colorStart[3] = {1.0, 0.0, 0.0};
-    float colorEnd[3] = {0.0, 0.0,1.0};
-    vtkActor* m_toRemove = nullptr; 
+    float colorEnd[3] = {0.0, 0.0, 1.0};
+    vtkActor* m_toRemove = nullptr;
     vtkRenderer* m_renderer;
     MouseInteractorStylePP* m_picker;
 };
