@@ -17,21 +17,26 @@ class Tools {
     void showWindows();
     void actorListWindow();
     void functionsWindow();
+    void deformWindow();
     void enableActorListWindow();
     void enableFunctionWindow();
+    void enableDeformWindow();
     void cleanup();
 
    private:
     int m_selectedActor = 0;
     bool m_showFnWindow = false;
     bool m_showActorsWindow = false;
+    bool m_showDeformWindow = false;
     bool* m_picking;
+    float m_deformDistance = 0.01;
     int m_weightingMethod = 0;
     float m_alpha = 1.0 / 4.0;
     int m_ringCount = 1;
     float m_colorStart[3] = {1.0, 0.0, 0.0};
     float m_colorEnd[3] = {0.0, 0.0, 1.0};
     float m_colorNeutral[3] = {1.0, 1.0, 1.0};
+    int m_smoothingIterations = 1;
     vtkActor* m_toRemove = nullptr;
     vtkRenderer* m_renderer;
     MouseInteractorStylePP* m_picker;

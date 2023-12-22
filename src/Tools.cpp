@@ -12,8 +12,8 @@
 #include <vtkUnsignedCharArray.h>
 
 #include <format>
-#include <iostream>
 
+#include "deformations.hpp"
 #include "harmonicFn.hpp"
 
 Tools::Tools(vtkRenderer* renderer, MouseInteractorStylePP* picker, bool* picking)
@@ -22,10 +22,13 @@ Tools::Tools(vtkRenderer* renderer, MouseInteractorStylePP* picker, bool* pickin
 void Tools::showWindows() {
     if (m_showActorsWindow) actorListWindow();
     if (m_showFnWindow) functionsWindow();
+    if (m_showDeformWindow) deformWindow();
 }
 
 void Tools::enableActorListWindow() { m_showActorsWindow = true; }
 void Tools::enableFunctionWindow() { m_showFnWindow = true; }
+void Tools::enableDeformWindow() { m_showDeformWindow = true; }
+
 void Tools::cleanup() {
     if (m_toRemove != nullptr) {
         m_renderer->RemoveActor(m_toRemove);
@@ -133,7 +136,7 @@ void Tools::functionsWindow() {
 
             ImGui::Separator();
             ImGui::Text("Weight Function");
-            std::array<const char*, 3> styles = {"Simple Harmonic", "Laplacian Diffusion", "solving Laplace Equations"};
+            std::array<const char*, 3> styles = {"Simple Harmonic", "Laplacian Diffusion", "Solving Laplace Equations"};
 
             ImGui::Combo("Weighting Method", &m_weightingMethod, styles.begin(), styles.size());
 
@@ -181,6 +184,64 @@ void Tools::functionsWindow() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+void Tools::deformWindow() {
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Deformations", &m_showDeformWindow)) {
+        if (!(*m_picking)) {
+            if (ImGui::Button("Pick")) {
+                m_picker->resetPickedState();
+                *m_picking = true;
+            }
+        } else {
+            ImGui::Text("Picking");
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
+                *m_picking = false;
+            }
+        }
+        if (m_picker->pickedSomething()) {
+            *m_picking = false;
+            auto actor = m_picker->getPickedActor();
+            auto data = m_picker->getPickedData();
+            auto pointId = m_picker->getPickedPointId();
+
+            if (actor) {
+                ImGui::Text("Actor : %s", (*actor)->GetObjectName().c_str());
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Laplacian Smoothing");
+            if (m_smoothingIterations < 1) m_smoothingIterations = 1;
+            ImGui::InputInt("Iterations", &m_smoothingIterations);
+            if (*data) {
+                if (ImGui::Button("Apply")) {
+                    laplacianSmoothing(*data, m_smoothingIterations);
+                }
+            }
+            ImGui::Separator();
+            ImGui::Text("Translation");
+            std::array<const char*, 3> styles = {"Simple Harmonic", "Laplacian Diffusion", "Solving Laplace Equations"};
+            ImGui::Combo("Weighting Method", &m_weightingMethod, styles.begin(), styles.size());
+            ImGui::InputFloat("Distance", &m_deformDistance);
+            ImGui::InputInt("Ring Count", &m_ringCount);
+
+            std::function<double(vtkIdType)> harmonic = [](vtkIdType) -> double { return 0.0; };
+
+            if (ImGui::Button("OK")) {
+                if (m_weightingMethod == 0) {
+                    harmonic = simpleHarmonic(*data, *pointId, m_ringCount);
+                } else if (m_weightingMethod == 1) {
+                    harmonic = laplacianDiffusion(*data, *pointId, m_alpha, m_ringCount);
+                } else {
+                    harmonic = solveLaplace(*data, *pointId, m_ringCount);
+                }
+
+                weightedTranslate(*data, *pointId, m_deformDistance, harmonic);
             }
         }
     }

@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 
+#include "deformations.hpp"
 #include "fileIO.hpp"
 
 Application::Application() {
@@ -144,6 +145,9 @@ void Application::mainWindow() {
                 }
                 if (ImGui::MenuItem("Visualization")) {
                     m_tools->enableFunctionWindow();
+                }
+                if (ImGui::MenuItem("Deformations")) {
+                    m_tools->enableDeformWindow();
                 }
                 ImGui::EndMenu();
             }

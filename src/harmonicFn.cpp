@@ -217,9 +217,6 @@ std::function<double(vtkIdType)> solveLaplace(vtkPolyData* mesh, vtkIdType ptId,
     }
     auto L = laplacianMatrix(mesh, ptId, pointMap, ringMap, lastRingStart);
 
-    std::cout << "Laplacian Mat\n";
-    std::cout << L << '\n';
-
     SparseLU<SparseMatrix<double>> solver;
     solver.compute(L);
 
@@ -231,9 +228,6 @@ std::function<double(vtkIdType)> solveLaplace(vtkPolyData* mesh, vtkIdType ptId,
     if (solver.info() != Success) {
         std::cerr << "Solving failed!" << std::endl;
     }
-
-    std::cout << "Result\n";
-    std::cout << res << '\n';
 
     return [=](vtkIdType ptId) {
         if (auto search = pointMap.find(ptId); search != pointMap.end()) {

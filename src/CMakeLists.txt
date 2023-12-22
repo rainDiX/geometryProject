@@ -10,6 +10,7 @@ vtk_module_autoinit(
 target_sources(geo PRIVATE 
   main.cpp
   Application.cpp
+  deformations.cpp
   fileIO.cpp
   harmonicFn.cpp
   MouseInteractorStylePP.cpp
