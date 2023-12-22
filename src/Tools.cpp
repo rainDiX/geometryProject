@@ -133,11 +133,11 @@ void Tools::functionsWindow() {
 
             ImGui::Separator();
             ImGui::Text("Weight Function");
-            std::array<const char*, 2> styles = {"Simple Harmonic", "Laplacian Diffusion"};
+            std::array<const char*, 3> styles = {"Simple Harmonic", "Laplacian Diffusion", "solving Laplace Equations"};
 
             ImGui::Combo("Weighting Method", &m_weightingMethod, styles.begin(), styles.size());
 
-            if (m_weightingMethod == 0) {
+            if (m_weightingMethod == 0 || m_weightingMethod == 2) {
                 if (m_ringCount < 1) m_ringCount = 1;
                 ImGui::InputInt("Ring Count", &m_ringCount);
             } else if (m_weightingMethod == 1) {
@@ -163,8 +163,10 @@ void Tools::functionsWindow() {
                     std::function<double(vtkIdType)> harmonic = [](vtkIdType) -> double { return 0.0; };
                     if (m_weightingMethod == 0) {
                         harmonic = simpleHarmonic(polyData, *pointId, m_ringCount);
-                    } else {
+                    } else if (m_weightingMethod == 1) {
                         harmonic = laplacianDiffusion(polyData, *pointId, m_alpha, m_ringCount);
+                    } else {
+                        harmonic = solveLaplace(polyData, *pointId, m_ringCount);
                     }
 
                     double max = harmonic(*pointId);

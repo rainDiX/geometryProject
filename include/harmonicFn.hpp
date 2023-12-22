@@ -3,6 +3,7 @@
 #include <vtkPolyData.h>
 #include <vtkType.h>
 
+#include <Eigen/Eigen>
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
@@ -45,7 +46,8 @@ std::function<double(vtkIdType)> simpleHarmonic(vtkPolyData* mesh, vtkIdType poi
 /**
  * Generates the diffusion process of the laplacian.
  * Initially Value_i = 1 if i == ptId else 0
- * then NewValue_i​ = (1 − alpha) * OldValue_i ​ + alpha * (1/Degree_i) ​* \sum_{j\in Neighbors_i} ​​OldValue_j​
+ * then NewValue_i​ = (1 − alpha) * OldValue_i ​ + alpha * (1/Degree_i) ​* \sum_{j\in Neighbors_i}
+ * ​​OldValue_j​
  * @param mesh The pointer to the vtkPolyData object.
  * @param ptId The ID of the point.
  * @param alpha diffusion parameter (between 0 and 1/2)
@@ -54,7 +56,33 @@ std::function<double(vtkIdType)> simpleHarmonic(vtkPolyData* mesh, vtkIdType poi
  * @return the laplacian diffusion
  *
  */
-std::function<double(vtkIdType)> laplacianDiffusion(vtkPolyData* mesh, vtkIdType ptId, double alpha, int iterations = 0);
+std::function<double(vtkIdType)> laplacianDiffusion(vtkPolyData* mesh, vtkIdType ptId, double alpha,
+                                                    int iterations = 0);
 
+/**
+ * Generates a Laplacian matrix for a given mesh and point ID.
+ *
+ * @param mesh A pointer to the vtkPolyData mesh.
+ * @param ptId The ID of the point.
+ * @param pointMap
+ * @param ringtMap
+ * @param lastRingStart
+ *
+ * @return The generated Laplacian matrix as an Eigen::SparseMatrix<double>.
+ *
+ * @throws None.
+ */
+Eigen::SparseMatrix<double> laplacianMatrix(vtkPolyData* mesh, vtkIdType ptId,
+                                            const std::map<vtkIdType, long>& pointMap,
+                                            const std::unordered_map<vtkIdType, long>& ringMap, long lastRingStart);
 
-// void laplacianMatrix();
+/**
+ * Solve the laplace equations
+ * @param mesh The pointer to the vtkPolyData object.
+ * @param ptId The ID of the point.
+ * @param ringCount The number of rings.
+ *
+ * @return weight computed by solving the system
+ *
+ */
+std::function<double(vtkIdType)> solveLaplace(vtkPolyData* mesh, vtkIdType ptId, int ringCount);
