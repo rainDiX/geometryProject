@@ -3,8 +3,6 @@
 #include <vtkPointData.h>
 #include <vtkPolyDataNormals.h>
 
-#include <iostream>
-
 #include "harmonicFn.hpp"
 
 void laplacianSmoothing(vtkPolyData* mesh, int numIterations) {

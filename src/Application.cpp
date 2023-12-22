@@ -25,7 +25,7 @@ Application::Application() {
     m_iren->SetInteractorStyle(m_defaultStyle);
     vtkNew<vtkPointPicker> pointPicker;
     m_iren->SetPicker(pointPicker);
-    m_renWin->SetSize(800, 800);
+    m_renWin->SetSize(1600, 900);
     m_iren->Initialize();
 
     // GUI Setup
